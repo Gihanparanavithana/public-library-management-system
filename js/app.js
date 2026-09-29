@@ -61,15 +61,381 @@ function adminContent(){
 }
 function render(){if(state.page==='admin') {app.innerHTML=admin();document.getElementById('admin-content').innerHTML=adminContent();return;} if(state.page==='login'){app.innerHTML=authShell('login');return}if(state.page==='register'){app.innerHTML=authShell('register');return}if(state.page==='admin-login'){app.innerHTML=adminLogin();return}if(state.page==='home'){app.innerHTML=home();return}if(state.page==='catalogue'){app.innerHTML=catalogue();return}if(state.page==='member'){app.innerHTML=member();return}app.innerHTML=home();}
 
-async function login(e){e.preventDefault();const err=document.getElementById('login-error');err.textContent='';try{const r=await fetch('backend/auth/login.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.getElementById('login-email').value,password:document.getElementById('login-password').value})});const d=await r.json();if(!d.success){err.textContent=d.message||'Login failed.';return}state.user=d.user;sessionStorage.setItem('library_user',JSON.stringify(d.user));go(d.user.role==='admin'?'admin':'home')}catch(x){err.textContent='Backend is not connected yet. Start Apache/PHP and check the API path.'}}
-async function register(e){e.preventDefault();const err=document.getElementById('register-error');err.textContent='';const p=document.getElementById('reg-password').value;const cp=document.getElementById('reg-confirm').value;if(p!==cp){err.textContent='Passwords do not match.';return}try{const r=await fetch('backend/auth/register.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({full_name:document.getElementById('reg-name').value,email:document.getElementById('reg-email').value,nic:document.getElementById('reg-nic').value,phone:document.getElementById('reg-phone').value,branch:document.getElementById('reg-branch').value,password:p,confirm_password:cp})});const d=await r.json();if(!d.success){err.textContent=d.message||'Registration failed.';return}state.user=d.user;sessionStorage.setItem('library_user',JSON.stringify(d.user));go('home')}catch(x){err.textContent='Backend is not connected yet. Start Apache/PHP and check the API path.'}}
-async function adminLoginSubmit(e){e.preventDefault();const err=document.getElementById('admin-error');err.textContent='';try{const r=await fetch('backend/auth/login.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.getElementById('admin-email').value,password:document.getElementById('admin-password').value})});const d=await r.json();if(!d.success||d.user.role!=='admin'){err.textContent='Invalid staff credentials.';return}state.user=d.user;sessionStorage.setItem('library_user',JSON.stringify(d.user));go('admin')}catch(x){err.textContent='Backend is not connected yet. Start Apache/PHP and check the API path.'}}
-async function logout(){try{await fetch('backend/auth/logout.php',{method:'POST'})}catch(e){}sessionStorage.removeItem('library_user');state.user=null;go('login')}
-function togglePassword(id){const x=document.getElementById(id);x.type=x.type==='password'?'text':'password'}
-function searchHome(e){e.preventDefault();state.query=document.getElementById('home-search').value;go('catalogue')}
-function searchCatalogue(e){e.preventDefault();state.query=document.getElementById('catalogue-search').value;render()}
-function catalogueByCategory(c){state.query=c;go('catalogue')}
-function addBook(e){e.preventDefault();alert('Frontend form is ready. Connect this form to backend/books/add-book.php to persist the record in MySQL.');adminSection('books')}
-window.addEventListener('hashchange',()=>{state.page=location.hash.replace('#','')||'login';render()});
-try{state.user=JSON.parse(sessionStorage.getItem('library_user')||'null')}catch(e){state.user=null}
-render();
+async function login(e) {
+
+    e.preventDefault();
+
+    const err = document.getElementById('login-error');
+
+    err.textContent = '';
+
+    try {
+
+        const response = await fetch(
+            'backend/auth/login.php',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    email: document.getElementById('login-email').value.trim(),
+                    password: document.getElementById('login-password').value
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!data.success) {
+
+            err.textContent =
+                data.message || 'Login failed.';
+
+            return;
+        }
+
+        state.user = data.user;
+
+        sessionStorage.setItem(
+            'library_user',
+            JSON.stringify(data.user)
+        );
+
+        if (data.user.role === 'admin') {
+
+            go('admin');
+
+        } else {
+
+            go('member');
+        }
+
+    } catch (error) {
+
+        console.error(error);
+
+        err.textContent =
+            'Unable to connect to the server. Please make sure Apache and MySQL are running.';
+    }
+}
+
+
+async function register(e) {
+
+    e.preventDefault();
+
+    const err =
+        document.getElementById('register-error');
+
+    err.textContent = '';
+
+    const password =
+        document.getElementById('reg-password').value;
+
+    const confirmPassword =
+        document.getElementById('reg-confirm').value;
+
+    if (password !== confirmPassword) {
+
+        err.textContent =
+            'Passwords do not match.';
+
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            'backend/auth/register.php',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+
+                    full_name:
+                        document.getElementById('reg-name').value.trim(),
+
+                    email:
+                        document.getElementById('reg-email').value.trim(),
+
+                    nic:
+                        document.getElementById('reg-nic').value.trim(),
+
+                    phone:
+                        document.getElementById('reg-phone').value.trim(),
+
+                    branch:
+                        document.getElementById('reg-branch').value,
+
+                    password:
+                        password,
+
+                    confirm_password:
+                        confirmPassword
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!data.success) {
+
+            err.textContent =
+                data.message || 'Registration failed.';
+
+            return;
+        }
+
+        state.user = data.user;
+
+        sessionStorage.setItem(
+            'library_user',
+            JSON.stringify(data.user)
+        );
+
+        go('member');
+
+    } catch (error) {
+
+        console.error(error);
+
+        err.textContent =
+            'Unable to connect to the server. Please make sure Apache and MySQL are running.';
+    }
+}
+
+
+async function adminLoginSubmit(e) {
+
+    e.preventDefault();
+
+    const err =
+        document.getElementById('admin-error');
+
+    err.textContent = '';
+
+    try {
+
+        const response = await fetch(
+            'backend/auth/login.php',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+
+                    email:
+                        document.getElementById('admin-email').value.trim(),
+
+                    password:
+                        document.getElementById('admin-password').value
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!data.success) {
+
+            err.textContent =
+                data.message || 'Invalid staff credentials.';
+
+            return;
+        }
+
+        if (data.user.role !== 'admin') {
+
+            err.textContent =
+                'This account does not have staff access.';
+
+            return;
+        }
+
+        state.user = data.user;
+
+        sessionStorage.setItem(
+            'library_user',
+            JSON.stringify(data.user)
+        );
+
+        go('admin');
+
+    } catch (error) {
+
+        console.error(error);
+
+        err.textContent =
+            'Unable to connect to the server.';
+    }
+}
+
+
+async function logout() {
+
+    try {
+
+        await fetch(
+            'backend/auth/logout.php',
+            {
+                method: 'POST',
+                credentials: 'same-origin'
+            }
+        );
+
+    } catch (error) {
+
+        console.error(error);
+    }
+
+    sessionStorage.removeItem('library_user');
+
+    state.user = null;
+
+    go('login');
+}
+
+
+async function restoreSession() {
+
+    try {
+
+        const response = await fetch(
+            'backend/auth/session.php',
+            {
+                method: 'GET',
+                credentials: 'same-origin'
+            }
+        );
+
+        const data = await response.json();
+
+        if (
+            response.ok &&
+            data.success &&
+            data.authenticated
+        ) {
+
+            state.user = data.user;
+
+            sessionStorage.setItem(
+                'library_user',
+                JSON.stringify(data.user)
+            );
+
+            return true;
+        }
+
+    } catch (error) {
+
+        console.error(
+            'Session restore failed:',
+            error
+        );
+    }
+
+    sessionStorage.removeItem('library_user');
+
+    state.user = null;
+
+    return false;
+}
+
+
+function togglePassword(id) {
+
+    const input =
+        document.getElementById(id);
+
+    if (!input) return;
+
+    input.type =
+        input.type === 'password'
+            ? 'text'
+            : 'password';
+}
+
+
+function searchHome(e) {
+
+    e.preventDefault();
+
+    state.query =
+        document.getElementById('home-search').value;
+
+    go('catalogue');
+}
+
+
+function searchCatalogue(e) {
+
+    e.preventDefault();
+
+    state.query =
+        document.getElementById('catalogue-search').value;
+
+    render();
+}
+
+
+function catalogueByCategory(category) {
+
+    state.query = category;
+
+    go('catalogue');
+}
+
+
+function addBook(e) {
+
+    e.preventDefault();
+
+    alert(
+        'Frontend form is ready. Connect this form to backend/books/add-book.php to persist the record in MySQL.'
+    );
+
+    adminSection('books');
+}
+
+
+window.addEventListener(
+    'hashchange',
+    () => {
+
+        state.page =
+            location.hash.replace('#', '') || 'login';
+
+        render();
+    }
+);
+
+
+(async function initApplication() {
+
+    const storedUser =
+        sessionStorage.getItem('library_user');
+
+    if (storedUser) {
+
+        try {
+
+            state.user =
+                JSON.parse(storedUser);
+
+        } catch (error) {
+
+            state.user = null;
+        }
+    }
+
+    await restoreSession();
+
+    render();
+
+})();
