@@ -2,9 +2,9 @@
 
 session_start();
 
-require_once __DIR__ . '/../config/database.php';
-
 header('Content-Type: application/json; charset=utf-8');
+
+require_once __DIR__ . '/../config/database.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
@@ -38,8 +38,10 @@ try {
     }
 
     /*
-     * Get registration data
-     */
+    |--------------------------------------------------------------------------
+    | Get registration data
+    |--------------------------------------------------------------------------
+    */
 
     $fullName = trim($data['full_name'] ?? '');
     $email = trim($data['email'] ?? '');
@@ -50,28 +52,34 @@ try {
     $confirmPassword = $data['confirm_password'] ?? '';
 
     /*
-     * Validate required fields
-     */
+    |--------------------------------------------------------------------------
+    | Validate required fields
+    |--------------------------------------------------------------------------
+    */
 
     if (
         $fullName === '' ||
         $email === '' ||
-        $password === ''
+        $branch === '' ||
+        $password === '' ||
+        $confirmPassword === ''
     ) {
 
         http_response_code(422);
 
         echo json_encode([
             'success' => false,
-            'message' => 'Full name, email and password are required.'
+            'message' => 'Please complete all required fields.'
         ]);
 
         exit;
     }
 
     /*
-     * Validate email
-     */
+    |--------------------------------------------------------------------------
+    | Validate email
+    |--------------------------------------------------------------------------
+    */
 
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 
@@ -86,8 +94,10 @@ try {
     }
 
     /*
-     * Validate password confirmation
-     */
+    |--------------------------------------------------------------------------
+    | Validate password confirmation
+    |--------------------------------------------------------------------------
+    */
 
     if ($password !== $confirmPassword) {
 
@@ -102,33 +112,39 @@ try {
     }
 
     /*
-     * Password length
-     */
+    |--------------------------------------------------------------------------
+    | Password length
+    |--------------------------------------------------------------------------
+    */
 
-    if (strlen($password) < 6) {
+    if (strlen($password) < 8) {
 
         http_response_code(422);
 
         echo json_encode([
             'success' => false,
-            'message' => 'Password must contain at least 6 characters.'
+            'message' => 'Password must contain at least 8 characters.'
         ]);
 
         exit;
     }
 
     /*
-     * Check duplicate email
-     */
+    |--------------------------------------------------------------------------
+    | Check duplicate email
+    |--------------------------------------------------------------------------
+    */
 
-    $checkEmail = $pdo->prepare("
-        SELECT id
-        FROM users
-        WHERE email = ?
-        LIMIT 1
-    ");
+    $checkEmail = $pdo->prepare(
+        'SELECT id
+         FROM users
+         WHERE email = ?
+         LIMIT 1'
+    );
 
-    $checkEmail->execute([$email]);
+    $checkEmail->execute([
+        $email
+    ]);
 
     if ($checkEmail->fetch()) {
 
@@ -143,14 +159,18 @@ try {
     }
 
     /*
-     * Start database transaction
-     */
+    |--------------------------------------------------------------------------
+    | Start transaction
+    |--------------------------------------------------------------------------
+    */
 
     $pdo->beginTransaction();
 
     /*
-     * Create password hash
-     */
+    |--------------------------------------------------------------------------
+    | Create password hash
+    |--------------------------------------------------------------------------
+    */
 
     $hashedPassword = password_hash(
         $password,
@@ -158,11 +178,13 @@ try {
     );
 
     /*
-     * Create user account
-     */
+    |--------------------------------------------------------------------------
+    | Create user
+    |--------------------------------------------------------------------------
+    */
 
-    $userStmt = $pdo->prepare("
-        INSERT INTO users
+    $userStmt = $pdo->prepare(
+        "INSERT INTO users
         (
             full_name,
             email,
@@ -170,8 +192,8 @@ try {
             role,
             status
         )
-        VALUES (?, ?, ?, 'member', 'active')
-    ");
+        VALUES (?, ?, ?, 'member', 'active')"
+    );
 
     $userStmt->execute([
         $fullName,
@@ -179,25 +201,29 @@ try {
         $hashedPassword
     ]);
 
-    $userId = (int)$pdo->lastInsertId();
+    $userId = (int) $pdo->lastInsertId();
 
     /*
-     * Generate member ID
-     */
+    |--------------------------------------------------------------------------
+    | Generate member ID
+    |--------------------------------------------------------------------------
+    */
 
     $memberId = 'LKL-MBR-' . str_pad(
-        (string)$userId,
+        (string) $userId,
         5,
         '0',
         STR_PAD_LEFT
     );
 
     /*
-     * Create member record
-     */
+    |--------------------------------------------------------------------------
+    | Create member record
+    |--------------------------------------------------------------------------
+    */
 
-    $memberStmt = $pdo->prepare("
-        INSERT INTO members
+    $memberStmt = $pdo->prepare(
+        "INSERT INTO members
         (
             user_id,
             member_id,
@@ -208,38 +234,58 @@ try {
             borrowed_count,
             status
         )
-        VALUES (?, ?, ?, ?, ?, CURDATE(), 0, 'active')
-    ");
+        VALUES (?, ?, ?, ?, ?, CURDATE(), 0, 'active')"
+    );
 
     $memberStmt->execute([
         $userId,
         $memberId,
         $nic !== '' ? $nic : null,
         $phone !== '' ? $phone : null,
-        $branch !== '' ? $branch : null
+        $branch,
     ]);
 
     /*
-     * Commit transaction
-     */
+    |--------------------------------------------------------------------------
+    | Commit transaction
+    |--------------------------------------------------------------------------
+    */
 
     $pdo->commit();
 
     /*
-     * Success response
-     */
+    |--------------------------------------------------------------------------
+    | Create login session
+    |--------------------------------------------------------------------------
+    */
+
+    session_regenerate_id(true);
+
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['full_name'] = $fullName;
+    $_SESSION['email'] = $email;
+    $_SESSION['role'] = 'member';
+
+    /*
+    |--------------------------------------------------------------------------
+    | Return user information
+    |--------------------------------------------------------------------------
+    */
 
     echo json_encode([
         'success' => true,
         'message' => 'Account created successfully.',
-        'member_id' => $memberId
+        'member_id' => $memberId,
+        'user' => [
+            'id' => $userId,
+            'full_name' => $fullName,
+            'email' => $email,
+            'role' => 'member',
+            'status' => 'active'
+        ]
     ]);
 
 } catch (PDOException $e) {
-
-    /*
-     * Rollback if transaction is active
-     */
 
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
@@ -253,10 +299,6 @@ try {
     ]);
 
 } catch (Throwable $e) {
-
-    /*
-     * Rollback if transaction is active
-     */
 
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
