@@ -23,8 +23,13 @@ async function getMembers(search = '', status = '') {
         (queryString ? '?' + queryString : '');
 
     const response = await fetch(url);
+    const data = await response.json();
 
-    return await response.json();
+    if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Unable to load members.');
+    }
+
+    return data;
 }
 
 
@@ -41,7 +46,13 @@ async function getMember(memberId) {
         encodeURIComponent(memberId)
     );
 
-    return await response.json();
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Unable to fetch member details.');
+    }
+
+    return data;
 }
 
 
@@ -66,7 +77,13 @@ async function addMember(memberData) {
         }
     );
 
-    return await response.json();
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to add member.');
+    }
+
+    return data;
 }
 
 
@@ -91,7 +108,13 @@ async function updateMember(memberData) {
         }
     );
 
-    return await response.json();
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to update member.');
+    }
+
+    return data;
 }
 
 
@@ -118,7 +141,13 @@ async function suspendMember(memberId) {
         }
     );
 
-    return await response.json();
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to suspend member.');
+    }
+
+    return data;
 }
 
 
@@ -145,5 +174,11 @@ async function restoreMember(memberId) {
         }
     );
 
-    return await response.json();
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to restore member.');
+    }
+
+    return data;
 }
