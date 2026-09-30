@@ -59,17 +59,399 @@ function adminContent(){
   if(adminPage==='reservations')return `<div class="admin-heading"><div><div class="eyebrow">Manage</div><h1>Reservations</h1></div><button class="btn btn-outline">⇩ Export CSV</button></div><div class="table-wrap"><div class="toolbar"><button class="btn btn-primary">Pending</button><button class="btn btn-outline">Approved</button><button class="btn btn-outline">Declined</button></div><table class="table"><thead><tr><th>Reference</th><th>Member</th><th>Book</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead><tbody><tr><td colspan="6">${empty('No reservations found.')}</td></tr></tbody></table></div>`;
   return `<div class="admin-heading"><div><div class="eyebrow">Manage</div><h1>Add New Book</h1></div></div><div class="panel"><form onsubmit="addBook(event)"><div class="modal-grid"><div class="form-group full"><label class="label">Title</label><input id="book-title" class="field" required placeholder="Book title"></div><div class="form-group"><label class="label">Author</label><input id="book-author" class="field" required placeholder="Author"></div><div class="form-group"><label class="label">ISBN</label><input id="book-isbn" class="field" placeholder="ISBN"></div><div class="form-group"><label class="label">Publisher</label><input id="book-publisher" class="field" placeholder="Publisher"></div><div class="form-group"><label class="label">Category</label><select id="book-category" class="field"><option value="">Select category</option>${categories.map(c=>`<option>${esc(c)}</option>`).join('')}</select></div><div class="form-group"><label class="label">Year Published</label><input id="book-year" class="field" type="number" min="1000" max="2100"></div><div class="form-group"><label class="label">Pages</label><input id="book-pages" class="field" type="number" min="1"></div><div class="form-group"><label class="label">Number of Copies</label><input id="book-copies" class="field" type="number" min="1" value="1"></div><div class="form-group full"><label class="label">Synopsis</label><textarea id="book-synopsis" class="field" rows="5" placeholder="Enter a brief synopsis..."></textarea></div></div><div style="display:flex;justify-content:flex-end;gap:10px;margin-top:10px"><button type="button" class="btn btn-outline" onclick="adminSection('books')">Cancel</button><button class="btn btn-gold">Add to Catalogue</button></div></form></div>`;
 }
-function render(){if(state.page==='admin') {app.innerHTML=admin();document.getElementById('admin-content').innerHTML=adminContent();return;} if(state.page==='login'){app.innerHTML=authShell('login');return}if(state.page==='register'){app.innerHTML=authShell('register');return}if(state.page==='admin-login'){app.innerHTML=adminLogin();return}if(state.page==='home'){app.innerHTML=home();return}if(state.page==='catalogue'){app.innerHTML=catalogue();return}if(state.page==='member'){app.innerHTML=member();return}app.innerHTML=home();}
+function render()
+{
+  console.log('CURRENT USER:', state.user);
+// Only admins can access the admin page
+    if (state.page === 'admin' && (!state.user || state.user.role !== 'admin')) {
+        state.page = state.user ? 'member' : 'login';
+        location.hash = state.page;
+        return;
+    }
+if(state.page==='admin') {app.innerHTML=admin();document.getElementById('admin-content').innerHTML=adminContent();return;} 
+if(state.page==='login'){app.innerHTML=authShell('login');return}
+if(state.page==='register'){app.innerHTML=authShell('register');return}
+if(state.page==='admin-login'){app.innerHTML=adminLogin();return}
+if(state.page==='home'){app.innerHTML=home();return}
+if(state.page==='catalogue'){app.innerHTML=catalogue();return}
+if(state.page==='member'){app.innerHTML=member();return}
+app.innerHTML=home();}
 
-async function login(e){e.preventDefault();const err=document.getElementById('login-error');err.textContent='';try{const r=await fetch('backend/auth/login.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.getElementById('login-email').value,password:document.getElementById('login-password').value})});const d=await r.json();if(!d.success){err.textContent=d.message||'Login failed.';return}state.user=d.user;sessionStorage.setItem('library_user',JSON.stringify(d.user));go(d.user.role==='admin'?'admin':'home')}catch(x){err.textContent='Backend is not connected yet. Start Apache/PHP and check the API path.'}}
-async function register(e){e.preventDefault();const err=document.getElementById('register-error');err.textContent='';const p=document.getElementById('reg-password').value;const cp=document.getElementById('reg-confirm').value;if(p!==cp){err.textContent='Passwords do not match.';return}try{const r=await fetch('backend/auth/register.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({full_name:document.getElementById('reg-name').value,email:document.getElementById('reg-email').value,nic:document.getElementById('reg-nic').value,phone:document.getElementById('reg-phone').value,branch:document.getElementById('reg-branch').value,password:p,confirm_password:cp})});const d=await r.json();if(!d.success){err.textContent=d.message||'Registration failed.';return}state.user=d.user;sessionStorage.setItem('library_user',JSON.stringify(d.user));go('home')}catch(x){err.textContent='Backend is not connected yet. Start Apache/PHP and check the API path.'}}
-async function adminLoginSubmit(e){e.preventDefault();const err=document.getElementById('admin-error');err.textContent='';try{const r=await fetch('backend/auth/login.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.getElementById('admin-email').value,password:document.getElementById('admin-password').value})});const d=await r.json();if(!d.success||d.user.role!=='admin'){err.textContent='Invalid staff credentials.';return}state.user=d.user;sessionStorage.setItem('library_user',JSON.stringify(d.user));go('admin')}catch(x){err.textContent='Backend is not connected yet. Start Apache/PHP and check the API path.'}}
-async function logout(){try{await fetch('backend/auth/logout.php',{method:'POST'})}catch(e){}sessionStorage.removeItem('library_user');state.user=null;go('login')}
-function togglePassword(id){const x=document.getElementById(id);x.type=x.type==='password'?'text':'password'}
-function searchHome(e){e.preventDefault();state.query=document.getElementById('home-search').value;go('catalogue')}
-function searchCatalogue(e){e.preventDefault();state.query=document.getElementById('catalogue-search').value;render()}
-function catalogueByCategory(c){state.query=c;go('catalogue')}
-function addBook(e){e.preventDefault();alert('Frontend form is ready. Connect this form to backend/books/add-book.php to persist the record in MySQL.');adminSection('books')}
-window.addEventListener('hashchange',()=>{state.page=location.hash.replace('#','')||'login';render()});
-try{state.user=JSON.parse(sessionStorage.getItem('library_user')||'null')}catch(e){state.user=null}
-render();
+async function login(e) {
+
+    e.preventDefault();
+
+    const err = document.getElementById('login-error');
+
+    err.textContent = '';
+
+    try {
+
+        const response = await fetch(
+            'backend/auth/login.php',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    email: document.getElementById('login-email').value.trim(),
+                    password: document.getElementById('login-password').value
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!data.success) {
+
+            err.textContent =
+                data.message || 'Login failed.';
+
+            return;
+        }
+
+        state.user = data.user;
+
+        sessionStorage.setItem(
+            'library_user',
+            JSON.stringify(data.user)
+        );
+
+        if (data.user.role === 'admin') {
+
+            go('admin');
+
+        } else {
+
+            go('member');
+        }
+
+    } catch (error) {
+
+        console.error(error);
+
+        err.textContent =
+            'Unable to connect to the server. Please make sure Apache and MySQL are running.';
+    }
+}
+
+
+async function register(e) {
+
+    e.preventDefault();
+
+    const err =
+        document.getElementById('register-error');
+
+    err.textContent = '';
+
+    const password =
+        document.getElementById('reg-password').value;
+
+    const confirmPassword =
+        document.getElementById('reg-confirm').value;
+
+    if (password !== confirmPassword) {
+
+        err.textContent =
+            'Passwords do not match.';
+
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            'backend/auth/register.php',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+
+                    full_name:
+                        document.getElementById('reg-name').value.trim(),
+
+                    email:
+                        document.getElementById('reg-email').value.trim(),
+
+                    nic:
+                        document.getElementById('reg-nic').value.trim(),
+
+                    phone:
+                        document.getElementById('reg-phone').value.trim(),
+
+                    branch:
+                        document.getElementById('reg-branch').value,
+
+                    password:
+                        password,
+
+                    confirm_password:
+                        confirmPassword
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!data.success) {
+
+            err.textContent =
+                data.message || 'Registration failed.';
+
+            return;
+        }
+
+        state.user = data.user;
+
+        sessionStorage.setItem(
+            'library_user',
+            JSON.stringify(data.user)
+        );
+
+        go('member');
+
+    } catch (error) {
+
+        console.error(error);
+
+        err.textContent =
+            'Unable to connect to the server. Please make sure Apache and MySQL are running.';
+    }
+}
+
+
+async function adminLoginSubmit(e) {
+
+    e.preventDefault();
+
+    const err =
+        document.getElementById('admin-error');
+
+    err.textContent = '';
+
+    try {
+
+        const response = await fetch(
+            'backend/auth/login.php',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+
+                    email:
+                        document.getElementById('admin-email').value.trim(),
+
+                    password:
+                        document.getElementById('admin-password').value
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!data.success) {
+
+            err.textContent =
+                data.message || 'Invalid staff credentials.';
+
+            return;
+        }
+
+        if (data.user.role !== 'admin') {
+
+            err.textContent =
+                'This account does not have staff access.';
+
+            return;
+        }
+
+        state.user = data.user;
+
+        sessionStorage.setItem(
+            'library_user',
+            JSON.stringify(data.user)
+        );
+
+        go('admin');
+
+    } catch (error) {
+
+        console.error(error);
+
+        err.textContent =
+            'Unable to connect to the server.';
+    }
+}
+
+
+async function logout() {
+
+    try {
+
+        await fetch(
+            'backend/auth/logout.php',
+            {
+                method: 'POST',
+                credentials: 'same-origin'
+            }
+        );
+
+    } catch (error) {
+
+        console.error(error);
+    }
+
+    sessionStorage.removeItem('library_user');
+
+    state.user = null;
+
+    go('login');
+}
+
+
+async function restoreSession() {
+
+    try {
+
+        const response = await fetch(
+            'backend/auth/session.php',
+            {
+                method: 'GET',
+                credentials: 'same-origin'
+            }
+        );
+
+        const data = await response.json();
+
+        if (
+            response.ok &&
+            data.success &&
+            data.authenticated
+        ) {
+
+            state.user = data.user;
+
+            sessionStorage.setItem(
+                'library_user',
+                JSON.stringify(data.user)
+            );
+
+            return true;
+        }
+
+    } catch (error) {
+
+        console.error(
+            'Session restore failed:',
+            error
+        );
+    }
+
+    sessionStorage.removeItem('library_user');
+
+    state.user = null;
+
+    return false;
+}
+
+
+function togglePassword(id) {
+
+    const input =
+        document.getElementById(id);
+
+    if (!input) return;
+
+    input.type =
+        input.type === 'password'
+            ? 'text'
+            : 'password';
+}
+
+
+function searchHome(e) {
+
+    e.preventDefault();
+
+    state.query =
+        document.getElementById('home-search').value;
+
+    go('catalogue');
+}
+
+
+function searchCatalogue(e) {
+
+    e.preventDefault();
+
+    state.query =
+        document.getElementById('catalogue-search').value;
+
+    render();
+}
+
+
+function catalogueByCategory(category) {
+
+    state.query = category;
+
+    go('catalogue');
+}
+
+
+function addBook(e) {
+
+    e.preventDefault();
+
+    alert(
+        'Frontend form is ready. Connect this form to backend/books/add-book.php to persist the record in MySQL.'
+    );
+
+    adminSection('books');
+}
+
+
+window.addEventListener(
+    'hashchange',
+    () => {
+
+        state.page =
+            location.hash.replace('#', '') || 'login';
+
+        render();
+    }
+);
+
+
+(async function initApplication() {
+
+    const storedUser =
+        sessionStorage.getItem('library_user');
+
+    if (storedUser) {
+
+        try {
+
+            state.user =
+                JSON.parse(storedUser);
+
+        } catch (error) {
+
+            state.user = null;
+        }
+    }
+
+    await restoreSession();
+
+    render();
+
+})();
