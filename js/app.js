@@ -59,7 +59,23 @@ function adminContent(){
   if(adminPage==='reservations')return `<div class="admin-heading"><div><div class="eyebrow">Manage</div><h1>Reservations</h1></div><button class="btn btn-outline">⇩ Export CSV</button></div><div class="table-wrap"><div class="toolbar"><button class="btn btn-primary">Pending</button><button class="btn btn-outline">Approved</button><button class="btn btn-outline">Declined</button></div><table class="table"><thead><tr><th>Reference</th><th>Member</th><th>Book</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead><tbody><tr><td colspan="6">${empty('No reservations found.')}</td></tr></tbody></table></div>`;
   return `<div class="admin-heading"><div><div class="eyebrow">Manage</div><h1>Add New Book</h1></div></div><div class="panel"><form onsubmit="addBook(event)"><div class="modal-grid"><div class="form-group full"><label class="label">Title</label><input id="book-title" class="field" required placeholder="Book title"></div><div class="form-group"><label class="label">Author</label><input id="book-author" class="field" required placeholder="Author"></div><div class="form-group"><label class="label">ISBN</label><input id="book-isbn" class="field" placeholder="ISBN"></div><div class="form-group"><label class="label">Publisher</label><input id="book-publisher" class="field" placeholder="Publisher"></div><div class="form-group"><label class="label">Category</label><select id="book-category" class="field"><option value="">Select category</option>${categories.map(c=>`<option>${esc(c)}</option>`).join('')}</select></div><div class="form-group"><label class="label">Year Published</label><input id="book-year" class="field" type="number" min="1000" max="2100"></div><div class="form-group"><label class="label">Pages</label><input id="book-pages" class="field" type="number" min="1"></div><div class="form-group"><label class="label">Number of Copies</label><input id="book-copies" class="field" type="number" min="1" value="1"></div><div class="form-group full"><label class="label">Synopsis</label><textarea id="book-synopsis" class="field" rows="5" placeholder="Enter a brief synopsis..."></textarea></div></div><div style="display:flex;justify-content:flex-end;gap:10px;margin-top:10px"><button type="button" class="btn btn-outline" onclick="adminSection('books')">Cancel</button><button class="btn btn-gold">Add to Catalogue</button></div></form></div>`;
 }
-function render(){if(state.page==='admin') {app.innerHTML=admin();document.getElementById('admin-content').innerHTML=adminContent();return;} if(state.page==='login'){app.innerHTML=authShell('login');return}if(state.page==='register'){app.innerHTML=authShell('register');return}if(state.page==='admin-login'){app.innerHTML=adminLogin();return}if(state.page==='home'){app.innerHTML=home();return}if(state.page==='catalogue'){app.innerHTML=catalogue();return}if(state.page==='member'){app.innerHTML=member();return}app.innerHTML=home();}
+function render()
+{
+  console.log('CURRENT USER:', state.user);
+// Only admins can access the admin page
+    if (state.page === 'admin' && (!state.user || state.user.role !== 'admin')) {
+        state.page = state.user ? 'member' : 'login';
+        location.hash = state.page;
+        return;
+    }
+if(state.page==='admin') {app.innerHTML=admin();document.getElementById('admin-content').innerHTML=adminContent();return;} 
+if(state.page==='login'){app.innerHTML=authShell('login');return}
+if(state.page==='register'){app.innerHTML=authShell('register');return}
+if(state.page==='admin-login'){app.innerHTML=adminLogin();return}
+if(state.page==='home'){app.innerHTML=home();return}
+if(state.page==='catalogue'){app.innerHTML=catalogue();return}
+if(state.page==='member'){app.innerHTML=member();return}
+app.innerHTML=home();}
 
 async function login(e) {
 
