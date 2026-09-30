@@ -17,15 +17,14 @@ function initTheme() {
 function toggleTheme() {
   const isDark = document.documentElement.classList.toggle('dark');
   localStorage.setItem('theme', isDark ? 'dark' : 'light');
-  render(); // Re-render to update theme toggle button icon/text across views
+  render();
 }
 
 function getThemeBtnHtml() {
   const isDark = document.documentElement.classList.contains('dark');
-  return `<button class="theme-toggle-btn" onclick="toggleTheme()">${isDark ? '☀️ Light' : '🌙 Dark'}</button>`;
+  return `<button class="theme-toggle-btn" onclick="toggleTheme()">${isDark ? '☀️️ Light' : '🌙 Dark'}</button>`;
 }
 
-// Initialize theme state immediately
 initTheme();
 
 function esc(v=''){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
@@ -52,13 +51,22 @@ function admin(){return `<div class="admin-shell"><header class="admin-top"><but
 
 let adminPage='overview';
 function adminSection(section){adminPage=section; if(state.page!=='admin'){state.page='admin';location.hash='admin';} render();}
+
 function adminContent(){
   if(adminPage==='overview')return `<div class="admin-heading"><div><div class="eyebrow">${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'})}</div><h1>Library Overview</h1></div></div><div class="admin-cards"><div class="admin-card"><strong>0</strong><span>Total Books</span></div><div class="admin-card"><strong>0</strong><span>Active Members</span></div><div class="admin-card"><strong>0</strong><span>Pending Approvals</span></div><div class="admin-card"><strong>0</strong><span>Books Overdue</span></div></div><div class="main-grid"><div class="panel"><h3>Pending Reservations</h3>${empty('No pending reservations.')}</div><div class="panel"><h3>Quick Actions</h3><div class="quick-list"><button onclick="adminSection('add-book')">＋ Add New Book</button><button onclick="adminSection('members')">♙ Register Member</button><button onclick="adminSection('books')">⌕ View Catalogue</button><button onclick="adminSection('reservations')">🔖 All Reservations</button></div></div></div>`;
   if(adminPage==='books')return `<div class="admin-heading"><div><div class="eyebrow">Manage</div><h1>Book Catalogue</h1></div><button class="btn btn-gold" onclick="adminSection('add-book')">＋ Add New Book</button></div><div class="table-wrap"><div class="toolbar"><input class="field" placeholder="Search books..."><select class="field" style="max-width:180px"><option>All Categories</option>${categories.map(c=>`<option>${esc(c)}</option>`).join('')}</select><select class="field" style="max-width:160px"><option>All Status</option><option>Available</option><option>Reserved</option><option>Overdue</option></select></div><table class="table"><thead><tr><th>Book</th><th>ISBN</th><th>Category</th><th>Copies</th><th>Status</th><th>Actions</th></tr></thead><tbody><tr><td colspan="6">${empty('No books in the catalogue.')}</td></tr></tbody></table></div>`;
-  if(adminPage==='members')return `<div class="admin-heading"><div><div class="eyebrow">Manage</div><h1>Members</h1></div><button class="btn btn-gold">＋ Register Member</button></div><div class="table-wrap"><div class="toolbar"><input class="field" placeholder="Search members..."></div><table class="table"><thead><tr><th>Member</th><th>Member ID</th><th>Branch</th><th>Joined</th><th>Borrowed</th><th>Status</th><th>Actions</th></tr></thead><tbody><tr><td colspan="7">${empty('No members registered yet.')}</td></tr></tbody></table></div>`;
   if(adminPage==='reservations')return `<div class="admin-heading"><div><div class="eyebrow">Manage</div><h1>Reservations</h1></div><button class="btn btn-outline">⇩ Export CSV</button></div><div class="table-wrap"><div class="toolbar"><button class="btn btn-primary">Pending</button><button class="btn btn-outline">Approved</button><button class="btn btn-outline">Declined</button></div><table class="table"><thead><tr><th>Reference</th><th>Member</th><th>Book</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead><tbody><tr><td colspan="6">${empty('No reservations found.')}</td></tr></tbody></table></div>`;
+  if(adminPage==='members'){
+    setTimeout(() => {
+      if (typeof renderMembersPage === 'function') {
+        renderMembersPage();
+      }
+    }, 0);
+    return `<div id="admin-content-members-placeholder">Loading Members View...</div>`;
+  }
   return `<div class="admin-heading"><div><div class="eyebrow">Manage</div><h1>Add New Book</h1></div></div><div class="panel"><form onsubmit="addBook(event)"><div class="modal-grid"><div class="form-group full"><label class="label">Title</label><input id="book-title" class="field" required placeholder="Book title"></div><div class="form-group"><label class="label">Author</label><input id="book-author" class="field" required placeholder="Author"></div><div class="form-group"><label class="label">ISBN</label><input id="book-isbn" class="field" placeholder="ISBN"></div><div class="form-group"><label class="label">Publisher</label><input id="book-publisher" class="field" placeholder="Publisher"></div><div class="form-group"><label class="label">Category</label><select id="book-category" class="field"><option value="">Select category</option>${categories.map(c=>`<option>${esc(c)}</option>`).join('')}</select></div><div class="form-group"><label class="label">Year Published</label><input id="book-year" class="field" type="number" min="1000" max="2100"></div><div class="form-group"><label class="label">Pages</label><input id="book-pages" class="field" type="number" min="1"></div><div class="form-group"><label class="label">Number of Copies</label><input id="book-copies" class="field" type="number" min="1" value="1"></div><div class="form-group full"><label class="label">Synopsis</label><textarea id="book-synopsis" class="field" rows="5" placeholder="Enter a brief synopsis..."></textarea></div></div><div style="display:flex;justify-content:flex-end;gap:10px;margin-top:10px"><button type="button" class="btn btn-outline" onclick="adminSection('books')">Cancel</button><button class="btn btn-gold">Add to Catalogue</button></div></form></div>`;
 }
+
 function render(){if(state.page==='admin') {app.innerHTML=admin();document.getElementById('admin-content').innerHTML=adminContent();return;} if(state.page==='login'){app.innerHTML=authShell('login');return}if(state.page==='register'){app.innerHTML=authShell('register');return}if(state.page==='admin-login'){app.innerHTML=adminLogin();return}if(state.page==='home'){app.innerHTML=home();return}if(state.page==='catalogue'){app.innerHTML=catalogue();return}if(state.page==='member'){app.innerHTML=member();return}app.innerHTML=home();}
 
 async function login(e){e.preventDefault();const err=document.getElementById('login-error');err.textContent='';try{const r=await fetch('backend/auth/login.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.getElementById('login-email').value,password:document.getElementById('login-password').value})});const d=await r.json();if(!d.success){err.textContent=d.message||'Login failed.';return}state.user=d.user;sessionStorage.setItem('library_user',JSON.stringify(d.user));go(d.user.role==='admin'?'admin':'home')}catch(x){err.textContent='Backend is not connected yet. Start Apache/PHP and check the API path.'}}
