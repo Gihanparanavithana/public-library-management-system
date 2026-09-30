@@ -1,3 +1,4 @@
+```php
 <?php
 
 session_start();
@@ -90,11 +91,10 @@ if ($user['status'] !== 'active') {
 
 /*
 |--------------------------------------------------------------------------
-| Refresh session information
+| Update session information
 |--------------------------------------------------------------------------
 */
 
-$_SESSION['user_id'] = (int) $user['id'];
 $_SESSION['full_name'] = $user['full_name'];
 $_SESSION['email'] = $user['email'];
 $_SESSION['role'] = $user['role'];
