@@ -28,9 +28,9 @@ const categories = [
     'Technology'
 ];
 
-/* =========================================================
+/* 
    THEME
-========================================================= */
+ */
 
 function initTheme() {
     const savedTheme = localStorage.getItem('theme') || 'light';
@@ -60,9 +60,9 @@ function getThemeBtnHtml() {
 
 initTheme();
 
-/* =========================================================
+/* 
    HELPERS
-========================================================= */
+ */
 
 function esc(v = '') {
     return String(v).replace(
@@ -112,9 +112,9 @@ function empty(message) {
     `;
 }
 
-/* =========================================================
+/* 
    PUBLIC NAVIGATION
-========================================================= */
+ */
 
 function publicNav() {
 
@@ -216,9 +216,9 @@ function publicNav() {
     `;
 }
 
-/* =========================================================
+/* 
    AUTH
-========================================================= */
+ */
 
 function authShell(mode = 'login') {
 
@@ -548,9 +548,9 @@ function registerForm() {
     `;
 }
 
-/* =========================================================
+/* 
    HOME
-========================================================= */
+ */
 
 function home() {
 
@@ -748,7 +748,7 @@ function home() {
                     <div class="branch-grid">
 
                         ${branches.map(
-                            b =>
+                                                      b =>
                             `
                             <div class="branch">
                                 ⌖ ${esc(b)}
@@ -775,9 +775,9 @@ function home() {
     `;
 }
 
-/* =========================================================
+/* 
    PUBLIC CATALOGUE
-========================================================= */
+ */
 
 function catalogue() {
 
@@ -840,9 +840,9 @@ function catalogue() {
 }
 
 
-/* =========================================================
+/*
    LOAD PUBLIC CATALOGUE
-========================================================= */
+ */
 
 async function loadPublicCatalogue() {
 
@@ -943,9 +943,9 @@ async function loadPublicCatalogue() {
     }
 }
 
-/* =========================================================
+/* 
    MEMBER
-========================================================= */
+ */
 
 function member() {
 
@@ -1131,9 +1131,9 @@ function member() {
     `;
 }
 
-/* =========================================================
+/*
    ADMIN LOGIN
-========================================================= */
+ */
 
 function adminLogin() {
 
@@ -1272,9 +1272,9 @@ function adminLogin() {
     `;
 }
 
-/* =========================================================
+/* 
    ADMIN SHELL
-========================================================= */
+ */
 
 function admin() {
 
@@ -1448,9 +1448,9 @@ function admin() {
     `;
 }
 
-/* =========================================================
+/* 
    ADMIN
-========================================================= */
+ */
 
 let adminPage = 'overview';
 
@@ -1508,344 +1508,113 @@ function adminContent() {
 
                 <div class="admin-card">
                     <strong>0</strong>
-                    <span>Pending Approvals</span>
+                    <span>Pending Reservations</span>
                 </div>
 
                 <div class="admin-card">
                     <strong>0</strong>
-                    <span>Books Overdue</span>
+                    <span>Overdue Books</span>
                 </div>
 
             </div>
 
             <div class="main-grid">
 
-                <div class="panel">
+                <section>
 
-                    <h3>
-                        Pending Reservations
-                    </h3>
+                    <div class="panel">
 
-                    ${empty('No pending reservations.')}
+                        <div
+                            style="display:flex;justify-content:space-between;align-items:center"
+                        >
 
-                </div>
+                            <h3>
+                                Recent Reservations
+                            </h3>
 
-                <div class="panel">
+                            <button
+                                class="btn btn-outline"
+                                onclick="adminSection('reservations')"
+                            >
+                                View All
+                            </button>
 
-                    <h3>
-                        Quick Actions
-                    </h3>
+                        </div>
 
-                    <div class="quick-list">
-
-                        <button onclick="adminSection('add-book')">
-                            ＋ Add New Book
-                        </button>
-
-                        <button onclick="adminSection('members')">
-                            ♙ Register Member
-                        </button>
-
-                        <button onclick="adminSection('books')">
-                            ⌕ View Catalogue
-                        </button>
-
-                        <button onclick="adminSection('reservations')">
-                            🔖 All Reservations
-                        </button>
+                        ${empty('No reservations yet.')}
 
                     </div>
 
-                </div>
+                </section>
+
+                <aside>
+
+                    <div class="panel">
+
+                        <h3>
+                            Quick Actions
+                        </h3>
+
+                        <div class="quick-list">
+
+                            <button
+                                onclick="adminSection('add-book')"
+                            >
+                                ＋ Add New Book →
+                            </button>
+
+                            <button
+                                onclick="adminSection('books')"
+                            >
+                                ▣ Manage Books →
+                            </button>
+
+                            <button
+                                onclick="adminSection('members')"
+                            >
+                                ♙ Manage Members →
+                            </button>
+
+                            <button
+                                onclick="adminSection('reservations')"
+                            >
+                                🔖 Manage Reservations →
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </aside>
 
             </div>
         `;
     }
-
-    /* =====================================================
-       ADMIN BOOKS
-    ===================================================== */
 
     if (adminPage === 'books') {
-
-        return `
-            <div class="admin-heading">
-
-                <div>
-
-                    <div class="eyebrow">
-                        Manage
-                    </div>
-
-                    <h1>
-                        Book Catalogue
-                    </h1>
-
-                </div>
-
-                <button
-                    class="btn btn-gold"
-                    onclick="adminSection('add-book')"
-                >
-                    ＋ Add New Book
-                </button>
-
-            </div>
-
-            <div class="table-wrap">
-
-                <div class="toolbar">
-
-                    <input
-                        id="admin-book-search"
-                        class="field"
-                        placeholder="Search books..."
-                    >
-
-                    <select
-                        id="admin-book-category"
-                        class="field"
-                        style="max-width:180px"
-                    >
-
-                        <option value="">
-                            All Categories
-                        </option>
-
-                        ${categories.map(
-                            c =>
-                            `<option value="${esc(c)}">${esc(c)}</option>`
-                        ).join('')}
-
-                    </select>
-
-                    <select
-                        id="admin-book-status"
-                        class="field"
-                        style="max-width:160px"
-                    >
-
-                        <option value="">
-                            All Status
-                        </option>
-
-                        <option value="available">
-                            Available
-                        </option>
-
-                        <option value="unavailable">
-                            Unavailable
-                        </option>
-
-                    </select>
-
-                </div>
-
-                <table class="table">
-
-                    <thead>
-
-                        <tr>
-
-                            <th>
-                                Book
-                            </th>
-
-                            <th>
-                                ISBN
-                            </th>
-
-                            <th>
-                                Category
-                            </th>
-
-                            <th>
-                                Copies
-                            </th>
-
-                            <th>
-                                Status
-                            </th>
-
-                            <th>
-                                Actions
-                            </th>
-
-                        </tr>
-
-                    </thead>
-
-                    <tbody id="admin-books-list">
-
-                        <tr>
-
-                            <td colspan="6">
-                                Loading books...
-                            </td>
-
-                        </tr>
-
-                    </tbody>
-
-                </table>
-
-            </div>
-        `;
+        return adminBooks();
     }
 
-    /* =====================================================
-       MEMBERS
-    ===================================================== */
+    if (adminPage === 'add-book') {
+        return adminAddBook();
+    }
 
     if (adminPage === 'members') {
-
-        return `
-            <div class="admin-heading">
-
-                <div>
-
-                    <div class="eyebrow">
-                        Manage
-                    </div>
-
-                    <h1>
-                        Members
-                    </h1>
-
-                </div>
-
-                <button class="btn btn-gold">
-                    ＋ Register Member
-                </button>
-
-            </div>
-
-            <div class="table-wrap">
-
-                <div class="toolbar">
-
-                    <input
-                        class="field"
-                        placeholder="Search members..."
-                    >
-
-                </div>
-
-                <table class="table">
-
-                    <thead>
-
-                        <tr>
-                            <th>Member</th>
-                            <th>Member ID</th>
-                            <th>Branch</th>
-                            <th>Joined</th>
-                            <th>Borrowed</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-
-                    </thead>
-
-                    <tbody>
-
-                        <tr>
-
-                            <td colspan="7">
-                                ${empty('No members registered yet.')}
-                            </td>
-
-                        </tr>
-
-                    </tbody>
-
-                </table>
-
-            </div>
-        `;
+        return adminMembers();
     }
-
-    /* =====================================================
-       RESERVATIONS
-    ===================================================== */
 
     if (adminPage === 'reservations') {
-
-        return `
-            <div class="admin-heading">
-
-                <div>
-
-                    <div class="eyebrow">
-                        Manage
-                    </div>
-
-                    <h1>
-                        Reservations
-                    </h1>
-
-                </div>
-
-                <button class="btn btn-outline">
-                    ⇩ Export CSV
-                </button>
-
-            </div>
-
-            <div class="table-wrap">
-
-                <div class="toolbar">
-
-                    <button class="btn btn-primary">
-                        Pending
-                    </button>
-
-                    <button class="btn btn-outline">
-                        Approved
-                    </button>
-
-                    <button class="btn btn-outline">
-                        Declined
-                    </button>
-
-                </div>
-
-                <table class="table">
-
-                    <thead>
-
-                        <tr>
-                            <th>Reference</th>
-                            <th>Member</th>
-                            <th>Book</th>
-                            <th>Date</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-
-                    </thead>
-
-                    <tbody>
-
-                        <tr>
-
-                            <td colspan="6">
-                                ${empty('No reservations found.')}
-                            </td>
-
-                        </tr>
-
-                    </tbody>
-
-                </table>
-
-            </div>
-        `;
+        return adminReservations();
     }
 
-    /* =====================================================
-       ADD BOOK
-    ===================================================== */
+    return '';
+}
+
+/* 
+   ADMIN BOOKS
+ */
+
+function adminBooks() {
 
     return `
         <div class="admin-heading">
@@ -1853,27 +1622,144 @@ function adminContent() {
             <div>
 
                 <div class="eyebrow">
-                    Manage
+                    Catalogue
+                </div>
+
+                <h1>
+                    Book Catalogue
+                </h1>
+
+                <p class="muted">
+                    Search, edit and manage books in the library database.
+                </p>
+
+            </div>
+
+            <button
+                class="btn btn-primary"
+                onclick="adminSection('add-book')"
+            >
+                ＋ Add New Book
+            </button>
+
+        </div>
+
+        <div class="panel">
+
+            <div
+                style="
+                    display:flex;
+                    gap:12px;
+                    align-items:center;
+                    flex-wrap:wrap;
+                    margin-bottom:18px;
+                "
+            >
+
+                <input
+                    id="admin-book-search"
+                    class="field"
+                    style="flex:1;min-width:240px"
+                    placeholder="Search books..."
+                    oninput="filterAdminBooks()"
+                >
+
+                <select
+                    id="admin-book-category"
+                    class="field"
+                    style="width:180px"
+                    onchange="filterAdminBooks()"
+                >
+
+                    <option value="">
+                        All Categories
+                    </option>
+
+                    ${categories.map(
+                        c =>
+                        `<option value="${esc(c)}">${esc(c)}</option>`
+                    ).join('')}
+
+                </select>
+
+                <select
+                    id="admin-book-status"
+                    class="field"
+                    style="width:150px"
+                    onchange="filterAdminBooks()"
+                >
+
+                    <option value="">
+                        All Status
+                    </option>
+
+                    <option value="available">
+                        Available
+                    </option>
+
+                    <option value="unavailable">
+                        Unavailable
+                    </option>
+
+                </select>
+
+            </div>
+
+            <div id="admin-books-list">
+                Loading books...
+            </div>
+
+        </div>
+    `;
+}
+
+/* 
+   ADMIN ADD BOOK
+ */
+
+function adminAddBook() {
+
+    return `
+        <div class="admin-heading">
+
+            <div>
+
+                <div class="eyebrow">
+                    Catalogue
                 </div>
 
                 <h1>
                     Add New Book
                 </h1>
 
+                <p class="muted">
+                    Add a new book to the central library catalogue.
+                </p>
+
             </div>
+
+            <button
+                class="btn btn-outline"
+                onclick="adminSection('books')"
+            >
+                ← Back to Books
+            </button>
 
         </div>
 
         <div class="panel">
 
-            <form onsubmit="addBook(event)">
+            <form
+                id="add-book-form"
+                onsubmit="addBook(event)"
+            >
 
                 <div class="modal-grid">
 
-                    <div class="form-group full">
+                    <div class="form-group">
 
                         <label class="label">
-                            Title
+                            Book Title *
                         </label>
 
                         <input
@@ -1888,17 +1774,21 @@ function adminContent() {
                     <div class="form-group">
 
                         <label class="label">
-                            Author
+                            Author *
                         </label>
 
                         <input
                             id="book-author"
                             class="field"
                             required
-                            placeholder="Author"
+                            placeholder="Author name"
                         >
 
                     </div>
+
+                </div>
+
+                <div class="modal-grid">
 
                     <div class="form-group">
 
@@ -1928,6 +1818,10 @@ function adminContent() {
 
                     </div>
 
+                </div>
+
+                <div class="modal-grid">
+
                     <div class="form-group">
 
                         <label class="label">
@@ -1945,7 +1839,7 @@ function adminContent() {
 
                             ${categories.map(
                                 c =>
-                                `<option>${esc(c)}</option>`
+                                `<option value="${esc(c)}">${esc(c)}</option>`
                             ).join('')}
 
                         </select>
@@ -1962,11 +1856,15 @@ function adminContent() {
                             id="book-year"
                             class="field"
                             type="number"
-                            min="1000"
-                            max="2100"
+                            min="0"
+                            placeholder="2026"
                         >
 
                     </div>
+
+                </div>
+
+                <div class="modal-grid">
 
                     <div class="form-group">
 
@@ -1978,7 +1876,8 @@ function adminContent() {
                             id="book-pages"
                             class="field"
                             type="number"
-                            min="1"
+                            min="0"
+                            placeholder="Number of pages"
                         >
 
                     </div>
@@ -1986,7 +1885,7 @@ function adminContent() {
                     <div class="form-group">
 
                         <label class="label">
-                            Number of Copies
+                            Total Copies *
                         </label>
 
                         <input
@@ -1994,30 +1893,38 @@ function adminContent() {
                             class="field"
                             type="number"
                             min="1"
-                            value="1"
+                            required
+                            placeholder="Number of copies"
                         >
-
-                    </div>
-
-                    <div class="form-group full">
-
-                        <label class="label">
-                            Synopsis
-                        </label>
-
-                        <textarea
-                            id="book-synopsis"
-                            class="field"
-                            rows="5"
-                            placeholder="Enter a brief synopsis..."
-                        ></textarea>
 
                     </div>
 
                 </div>
 
+                <div class="form-group">
+
+                    <label class="label">
+                        Synopsis
+                    </label>
+
+                    <textarea
+                        id="book-synopsis"
+                        class="field"
+                        rows="5"
+                        placeholder="Short description of the book"
+                    ></textarea>
+
+                </div>
+
+                <div id="book-add-error" class="error"></div>
+
                 <div
-                    style="display:flex;justify-content:flex-end;gap:10px;margin-top:10px"
+                    style="
+                        display:flex;
+                        justify-content:flex-end;
+                        gap:10px;
+                        margin-top:18px;
+                    "
                 >
 
                     <button
@@ -2028,8 +1935,11 @@ function adminContent() {
                         Cancel
                     </button>
 
-                    <button class="btn btn-gold">
-                        Add to Catalogue
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
+                        Add Book
                     </button>
 
                 </div>
@@ -2040,9 +1950,125 @@ function adminContent() {
     `;
 }
 
-/* =========================================================
+function adminMembers() {
+
+    return `
+        <div class="admin-heading">
+
+            <div>
+
+                <div class="eyebrow">
+                    Members
+                </div>
+
+                <h1>
+                    Members
+                </h1>
+
+                <p class="muted">
+                    View member activity, account status, and borrowing records.
+                </p>
+
+            </div>
+
+            <button class="btn btn-primary">
+                ＋ Register Member
+            </button>
+
+        </div>
+
+        <div class="panel">
+
+            <div
+                style="
+                    display:flex;
+                    gap:12px;
+                    align-items:center;
+                    flex-wrap:wrap;
+                    margin-bottom:18px;
+                "
+            >
+
+                <input
+                    class="field"
+                    style="flex:1;min-width:240px"
+                    placeholder="Search members..."
+                >
+
+            </div>
+
+            <div id="admin-members-list">
+                ${empty('No members registered yet.')}
+            </div>
+
+        </div>
+    `;
+}
+
+function adminReservations() {
+
+    return `
+        <div class="admin-heading">
+
+            <div>
+
+                <div class="eyebrow">
+                    Reservations
+                </div>
+
+                <h1>
+                    Reservations
+                </h1>
+
+                <p class="muted">
+                    Review and respond to reservation requests from members.
+                </p>
+
+            </div>
+
+            <button class="btn btn-outline">
+                ⇩ Export CSV
+            </button>
+
+        </div>
+
+        <div class="panel">
+
+            <div
+                style="
+                    display:flex;
+                    gap:10px;
+                    align-items:center;
+                    flex-wrap:wrap;
+                    margin-bottom:18px;
+                "
+            >
+
+                <button class="btn btn-primary">
+                    Pending
+                </button>
+
+                <button class="btn btn-outline">
+                    Approved
+                </button>
+
+                <button class="btn btn-outline">
+                    Declined
+                </button>
+
+            </div>
+
+            <div id="admin-reservations-list">
+                ${empty('No reservations found.')}
+            </div>
+
+        </div>
+    `;
+}
+
+/* 
    LOAD ADMIN BOOKS
-========================================================= */
+ */
 
 async function loadAdminBooks() {
 
@@ -2153,11 +2179,21 @@ async function loadAdminBooks() {
     }
 }
 
-/* =========================================================
+/* 
    RENDER
-========================================================= */
+ */
 
 function render() {
+
+    // Only authenticated admin users can access the admin panel.
+    if (
+        state.page === 'admin' &&
+        (!state.user || state.user.role !== 'admin')
+    ) {
+        state.page = state.user ? 'member' : 'login';
+        location.hash = state.page;
+        return;
+    }
 
     if (state.page === 'admin') {
 
@@ -2208,9 +2244,9 @@ function render() {
     app.innerHTML = home();
 }
 
-/* =========================================================
+/* 
    ADMIN BOOK SEARCH / FILTER EVENTS
-========================================================= */
+ */
 
 document.addEventListener(
     'input',
@@ -2237,15 +2273,14 @@ document.addEventListener(
                 event.target.id === 'admin-book-status'
             )
         ) {
-
             loadAdminBooks();
         }
     }
 );
 
-/* =========================================================
+/* 
    LOGIN
-========================================================= */
+ */
 
 async function login(e) {
 
@@ -2309,9 +2344,9 @@ async function login(e) {
     }
 }
 
-/* =========================================================
+/* 
    REGISTER
-========================================================= */
+ */
 
 async function register(e) {
 
@@ -2411,9 +2446,9 @@ async function register(e) {
     }
 }
 
-/* =========================================================
+/* 
    ADMIN LOGIN
-========================================================= */
+*/
 
 async function adminLoginSubmit(e) {
 
@@ -2480,9 +2515,9 @@ async function adminLoginSubmit(e) {
     }
 }
 
-/* =========================================================
+/* 
    LOGOUT
-========================================================= */
+ */
 
 async function logout() {
 
@@ -2506,19 +2541,70 @@ async function logout() {
     go('login');
 }
 
-/* =========================================================
+/* 
    OTHER FUNCTIONS
-========================================================= */
+ */
 
 function togglePassword(id) {
 
     const x =
         document.getElementById(id);
 
+    if (!x) return;
+
     x.type =
         x.type === 'password'
         ? 'text'
         : 'password';
+}
+
+/* 
+   RESTORE SERVER SESSION
+ */
+
+async function restoreSession() {
+
+    try {
+
+        const response = await fetch(
+            'backend/auth/session.php',
+            {
+                method: 'GET',
+                credentials: 'same-origin'
+            }
+        );
+
+        const data = await response.json();
+
+        if (
+            response.ok &&
+            data.success &&
+            data.authenticated
+        ) {
+
+            state.user = data.user;
+
+            sessionStorage.setItem(
+                'library_user',
+                JSON.stringify(data.user)
+            );
+
+            return true;
+        }
+
+    } catch (error) {
+
+        console.error(
+            'Session restore failed:',
+            error
+        );
+    }
+
+    sessionStorage.removeItem('library_user');
+
+    state.user = null;
+
+    return false;
 }
 
 function searchHome(e) {
@@ -2552,9 +2638,9 @@ function catalogueByCategory(c) {
     go('catalogue');
 }
 
-/* =========================================================
+/* 
    ADD BOOK
-========================================================= */
+ */
 
 async function addBook(e) {
 
@@ -2608,10 +2694,9 @@ async function addBook(e) {
     }
 }
 
-
-/* =========================================================
+/* 
    UPDATE BOOK
-========================================================= */
+ */
 
 async function updateBook(book) {
 
@@ -2637,10 +2722,9 @@ async function updateBook(book) {
     return data;
 }
 
-
-/* =========================================================
+/* 
    EDIT BOOK
-========================================================= */
+ */
 
 async function editBook(bookId) {
 
@@ -2775,10 +2859,9 @@ async function editBook(bookId) {
     }
 }
 
-
-/* =========================================================
+/* 
    DELETE BOOK
-========================================================= */
+ */
 
 async function deleteBook(bookId) {
 
@@ -2828,26 +2911,101 @@ async function deleteBook(bookId) {
     }
 }
 
-/* =========================================================
-   RESTORE SESSION
-========================================================= */
+/* 
+   GET BOOKS
+ */
 
-try {
+async function getBooks(query = '', category = '') {
 
-    state.user =
-        JSON.parse(
-            sessionStorage.getItem(
-                'library_user'
-            ) || 'null'
+    const params = new URLSearchParams();
+
+    if (query) {
+        params.set('search', query);
+    }
+
+    if (category) {
+        params.set('category', category);
+    }
+
+    const url =
+        'backend/books/get-books.php' +
+        (params.toString()
+            ? '?' + params.toString()
+            : '');
+
+    const response = await fetch(url);
+
+    const data = await response.json();
+
+    if (!response.ok) {
+
+        throw new Error(
+            data.message || 'Failed to load books.'
         );
+    }
 
-} catch (e) {
+    if (Array.isArray(data)) {
+        return data;
+    }
 
-    state.user = null;
+    if (Array.isArray(data.books)) {
+        return data.books;
+    }
+
+    if (
+        data.success &&
+        Array.isArray(data.data)
+    ) {
+        return data.data;
+    }
+
+    if (
+        data.success &&
+        Array.isArray(data.books)
+    ) {
+        return data.books;
+    }
+
+    return [];
 }
 
-/* =========================================================
-   INITIAL RENDER
-========================================================= */
+/* 
+   HASH NAVIGATION + APPLICATION INITIALIZATION
+ */
 
-render();
+window.addEventListener(
+    'hashchange',
+    () => {
+
+        state.page =
+            location.hash.replace('#', '') || 'login';
+
+        render();
+    }
+);
+
+(async function initApplication() {
+
+    const storedUser =
+        sessionStorage.getItem('library_user');
+
+    if (storedUser) {
+
+        try {
+
+            state.user =
+                JSON.parse(storedUser);
+
+        } catch (error) {
+
+            state.user = null;
+        }
+    }
+
+    await restoreSession();
+
+    render();
+
+})
+
+();
