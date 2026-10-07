@@ -1966,16 +1966,21 @@ function adminMembers() {
                 </h1>
 
                 <p class="muted">
-                    View member activity, account status, and borrowing records.
+                    View, search, register, edit, suspend, and restore library members.
                 </p>
 
             </div>
 
-            <button class="btn btn-primary">
+            <button
+                class="btn btn-primary"
+                type="button"
+                onclick="showAddMemberModal()"
+            >
                 ＋ Register Member
             </button>
 
         </div>
+
 
         <div class="panel">
 
@@ -1990,15 +1995,51 @@ function adminMembers() {
             >
 
                 <input
+                    id="member-search"
                     class="field"
                     style="flex:1;min-width:240px"
-                    placeholder="Search members..."
+                    placeholder="Search by member ID, name, email, NIC, or phone..."
+                    oninput="searchAdminMembers()"
                 >
+
+
+                <select
+                    id="member-status-filter"
+                    class="field"
+                    style="width:170px"
+                    onchange="searchAdminMembers()"
+                >
+
+                    <option value="">
+                        All Statuses
+                    </option>
+
+                    <option value="active">
+                        Active
+                    </option>
+
+                    <option value="suspended">
+                        Suspended
+                    </option>
+
+                </select>
+
+
+                <button
+                    class="btn btn-outline"
+                    type="button"
+                    onclick="searchAdminMembers()"
+                >
+                    Search
+                </button>
 
             </div>
 
+
             <div id="admin-members-list">
-                ${empty('No members registered yet.')}
+
+                ${empty('Loading members...')}
+
             </div>
 
         </div>
@@ -2204,10 +2245,14 @@ function render() {
         ).innerHTML = adminContent();
 
         if (adminPage === 'books') {
-            loadAdminBooks();
-        }
+    loadAdminBooks();
+}
 
-        return;
+if (adminPage === 'members') {
+    loadAdminMembers();
+}
+
+return;
     }
 
     if (state.page === 'login') {
