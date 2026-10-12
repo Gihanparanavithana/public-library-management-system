@@ -1,6 +1,6 @@
 <?php
 
-session_start();
+require_once __DIR__ . '/../config/session.php';
 
 require_once __DIR__ . '/../config/database.php';
 
@@ -228,6 +228,14 @@ try {
     /*
      * Success response
      */
+
+    // Sign the new member in immediately so the frontend receives the
+    // same user payload as the login endpoint.
+    session_regenerate_id(true);
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['full_name'] = $fullName;
+    $_SESSION['email'] = $email;
+    $_SESSION['role'] = 'member';
 
     echo json_encode([
         'success' => true,
