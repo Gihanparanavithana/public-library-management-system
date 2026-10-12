@@ -240,14 +240,7 @@ try {
     echo json_encode([
         'success' => true,
         'message' => 'Account created successfully.',
-        'member_id' => $memberId,
-        'user' => [
-            'id' => $userId,
-            'full_name' => $fullName,
-            'email' => $email,
-            'role' => 'member',
-            'status' => 'active'
-        ]
+        'member_id' => $memberId
     ]);
 
 } catch (PDOException $e) {

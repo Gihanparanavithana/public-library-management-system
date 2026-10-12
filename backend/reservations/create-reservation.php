@@ -69,6 +69,21 @@ if (!$dateObject || $dateObject->format('Y-m-d') !== $reservationDate) {
 
 /*
 |--------------------------------------------------------------------------
+| Validate past date
+|--------------------------------------------------------------------------
+*/
+
+if ($reservationDate < date('Y-m-d')) {
+    http_response_code(422);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Reservation date cannot be in the past.'
+    ]);
+    exit;
+}
+
+/*
+|--------------------------------------------------------------------------
 | Get member
 |--------------------------------------------------------------------------
 */

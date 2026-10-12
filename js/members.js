@@ -1,6 +1,6 @@
 /*
 |--------------------------------------------------------------------------
-| Get Members
+| MEMBER API
 |--------------------------------------------------------------------------
 */
 
@@ -23,13 +23,8 @@ async function getMembers(search = '', status = '') {
         (queryString ? '?' + queryString : '');
 
     const response = await fetch(url);
-    const data = await response.json();
 
-    if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Unable to load members.');
-    }
-
-    return data;
+    return await response.json();
 }
 
 
@@ -46,13 +41,7 @@ async function getMember(memberId) {
         encodeURIComponent(memberId)
     );
 
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Unable to fetch member details.');
-    }
-
-    return data;
+    return await response.json();
 }
 
 
@@ -77,13 +66,7 @@ async function addMember(memberData) {
         }
     );
 
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Failed to add member.');
-    }
-
-    return data;
+    return await response.json();
 }
 
 
@@ -108,13 +91,7 @@ async function updateMember(memberData) {
         }
     );
 
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Failed to update member.');
-    }
-
-    return data;
+    return await response.json();
 }
 
 
@@ -141,13 +118,7 @@ async function suspendMember(memberId) {
         }
     );
 
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Failed to suspend member.');
-    }
-
-    return data;
+    return await response.json();
 }
 
 
@@ -174,295 +145,1454 @@ async function restoreMember(memberId) {
         }
     );
 
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Failed to restore member.');
-    }
-
-    return data;
+    return await response.json();
 }
+
+
 /*
 |--------------------------------------------------------------------------
-| Render Members View & UI
+| MEMBER HELPERS
 |--------------------------------------------------------------------------
 */
 
-async function renderMembersPage() {
-    const container = document.getElementById('admin-content');
-    if (!container) return;
+function memberStatusClass(status = '') {
 
-    container.innerHTML = `
-        <div class="members-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2>Member Management</h2>
-            <button onclick="openAddMemberModal()" class="btn-primary" style="padding: 10px 16px; cursor: pointer;">+ Register Member</button>
-        </div>
-
-        <!-- Search & Filter Controls -->
-        <div class="controls-bar" style="display: flex; gap: 15px; margin-bottom: 20px;">
-            <input type="text" id="memberSearch" placeholder="Search members..." onkeyup="handleSearchFilter()" style="padding: 8px 12px; flex: 1;">
-            <select id="statusFilter" onchange="handleSearchFilter()" style="padding: 8px 12px;">
-                <option value="">All Status</option>
-                <option value="active">Active</option>
-                <option value="suspended">Suspended</option>
-            </select>
-        </div>
-
-        <!-- Members Table -->
-        <div class="table-responsive">
-            <table class="members-table" style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="text-align: left; border-bottom: 2px solid #ddd;">
-                        <th style="padding: 10px;">Member</th>
-                        <th style="padding: 10px;">Member ID</th>
-                        <th style="padding: 10px;">Branch</th>
-                        <th style="padding: 10px;">Joined</th>
-                        <th style="padding: 10px;">Borrowed</th>
-                        <th style="padding: 10px;">Status</th>
-                        <th style="padding: 10px;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="membersTableBody">
-                    <tr>
-                        <td colspan="7" style="padding: 15px; text-align: center;">Loading members...</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Modals Container -->
-        <div id="memberModalContainer"></div>
-    `;
-
-    // Table එකට data load කිරීම
-    loadMembersTable();
+    return String(status).toLowerCase() === 'active'
+        ? 'success'
+        : 'danger';
 }
 
-async function loadMembersTable() {
-    const searchInput = document.getElementById('memberSearch');
-    const statusSelect = document.getElementById('statusFilter');
-    const tbody = document.getElementById('membersTableBody');
 
-    if (!tbody) return;
+function formatMemberDate(date = '') {
 
-    const search = searchInput ? searchInput.value : '';
-    const status = statusSelect ? statusSelect.value : '';
+    if (!date) {
+        return '-';
+    }
+
+    const parsed = new Date(date);
+
+    if (Number.isNaN(parsed.getTime())) {
+        return esc(date);
+    }
+
+    return parsed.toLocaleDateString(
+        'en-GB',
+        {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        }
+    );
+}
+
+
+function memberErrorMessage(
+    response,
+    fallback = 'Something went wrong.'
+) {
+
+    if (!response) {
+        return fallback;
+    }
+
+    if (typeof response === 'string') {
+        return response;
+    }
+
+    return response.message ||
+           response.error ||
+           fallback;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| LOAD MEMBER LIST
+|--------------------------------------------------------------------------
+*/
+
+async function loadAdminMembers(
+    search = '',
+    status = ''
+) {
+
+    const container =
+        document.getElementById(
+            'admin-members-list'
+        );
+
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="empty-state">
+
+            <strong>
+                Loading members...
+            </strong>
+
+            <div
+                class="muted"
+                style="margin-top:7px"
+            >
+                Please wait while member records are loaded.
+            </div>
+
+        </div>
+    `;
 
     try {
-        const res = await getMembers(search, status);
-        const members = res.members || [];
 
-        if (members.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" style="padding: 15px; text-align: center;">No members found.</td></tr>`;
+        const response =
+            await getMembers(
+                search,
+                status
+            );
+
+        if (
+            !response ||
+            response.success === false
+        ) {
+
+            container.innerHTML =
+                empty(
+                    memberErrorMessage(
+                        response,
+                        'Unable to load members.'
+                    )
+                );
+
             return;
         }
 
-        tbody.innerHTML = members.map(m => `
-            <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 10px;">
-                    <strong>${m.full_name}</strong><br>
-                    <small style="color: #666;">${m.email}</small>
-                </td>
-                <td style="padding: 10px;">${m.member_id}</td>
-                <td style="padding: 10px;">${m.branch}</td>
-                <td style="padding: 10px;">${m.joined_date || '-'}</td>
-                <td style="padding: 10px;">${m.borrowed_count || 0}</td>
-                <td style="padding: 10px;">
-                    <span class="badge ${m.status}" style="padding: 4px 8px; border-radius: 4px; font-size: 12px; background: ${m.status === 'active' ? '#e6fffa' : '#ffe6e6'}; color: ${m.status === 'active' ? '#007a5a' : '#c53030'};">
-                        ${m.status}
-                    </span>
-                </td>
-                <td style="padding: 10px;">
-                    <button onclick="openEditMemberModal(${m.id})" style="margin-right: 5px; cursor: pointer;">Edit</button>
-                    ${m.status === 'active' 
-                        ? `<button onclick="handleSuspend(${m.id})" style="cursor: pointer;">Suspend</button>`
-                        : `<button onclick="handleRestore(${m.id})" style="cursor: pointer;">Restore</button>`
-                    }
-                </td>
-            </tr>
-        `).join('');
-    } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="7" style="padding: 15px; text-align: center; color: red;">Error: ${err.message}</td></tr>`;
+        const members =
+            Array.isArray(response.data)
+                ? response.data
+                : Array.isArray(response.members)
+                    ? response.members
+                    : Array.isArray(response)
+                        ? response
+                        : [];
+
+        renderAdminMembers(members);
+
+    } catch (error) {
+
+        console.error(
+            'Load members error:',
+            error
+        );
+
+        container.innerHTML =
+            empty(
+                'Unable to connect to the member service.'
+            );
     }
 }
 
-// Search/Filter change වෙනවිට run වෙන function එක
-function handleSearchFilter() {
-    loadMembersTable();
-}
+
 /*
 |--------------------------------------------------------------------------
-| Modals & Action Handlers (Add, Edit, Suspend, Restore)
+| RENDER MEMBER TABLE
 |--------------------------------------------------------------------------
 */
 
-// 1. Add Member Modal Open කිරීම
-function openAddMemberModal() {
-    const container = document.getElementById('memberModalContainer');
-    if (!container) return;
+function renderAdminMembers(
+    members = []
+) {
+
+    const container =
+        document.getElementById(
+            'admin-members-list'
+        );
+
+    if (!container) {
+        return;
+    }
+
+    if (!members.length) {
+
+        container.innerHTML =
+            empty(
+                'No members found.'
+            );
+
+        return;
+    }
 
     container.innerHTML = `
-        <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
-            <div class="modal-content" style="background: #fff; padding: 25px; border-radius: 8px; width: 400px; max-width: 90%;">
-                <h3 style="margin-top: 0;">Add New Member</h3>
-                <form id="addMemberForm" style="display: flex; flex-direction: column; gap: 12px;">
-                    <div>
-                        <label style="font-size: 12px; font-weight: bold;">Full Name *</label>
-                        <input type="text" id="add_full_name" required style="width: 100%; padding: 8px; box-sizing: border-box;">
-                    </div>
-                    <div>
-                        <label style="font-size: 12px; font-weight: bold;">Email *</label>
-                        <input type="email" id="add_email" required style="width: 100%; padding: 8px; box-sizing: border-box;">
-                    </div>
-                    <div>
-                        <label style="font-size: 12px; font-weight: bold;">Password (Min 8 characters) *</label>
-                        <input type="password" id="add_password" required minlength="8" style="width: 100%; padding: 8px; box-sizing: border-box;">
-                    </div>
-                    <div>
-                        <label style="font-size: 12px; font-weight: bold;">Branch *</label>
-                        <input type="text" id="add_branch" required style="width: 100%; padding: 8px; box-sizing: border-box;">
-                    </div>
-                    <div>
-                        <label style="font-size: 12px; font-weight: bold;">NIC</label>
-                        <input type="text" id="add_nic" style="width: 100%; padding: 8px; box-sizing: border-box;">
-                    </div>
-                    <div>
-                        <label style="font-size: 12px; font-weight: bold;">Phone</label>
-                        <input type="text" id="add_phone" style="width: 100%; padding: 8px; box-sizing: border-box;">
-                    </div>
 
-                    <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
-                        <button type="button" onclick="closeMemberModal()" style="padding: 8px 16px; cursor: pointer;">Cancel</button>
-                        <button type="submit" class="btn-primary" style="padding: 8px 16px; cursor: pointer;">Create Member</button>
-                    </div>
-                </form>
-            </div>
+        <div class="table-wrap">
+
+            <table class="table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Member ID
+                        </th>
+
+                        <th>
+                            Name
+                        </th>
+
+                        <th>
+                            Email
+                        </th>
+
+                        <th>
+                            Phone
+                        </th>
+
+                        <th>
+                            Branch
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                        <th>
+                            Borrowed
+                        </th>
+
+                        <th>
+                            Actions
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    ${members.map(member => `
+
+                        <tr>
+
+                            <td>
+                                ${esc(
+                                    member.member_id || '-'
+                                )}
+                            </td>
+
+                            <td>
+                                ${esc(
+                                    member.full_name || '-'
+                                )}
+                            </td>
+
+                            <td>
+                                ${esc(
+                                    member.email || '-'
+                                )}
+                            </td>
+
+                            <td>
+                                ${esc(
+                                    member.phone || '-'
+                                )}
+                            </td>
+
+                            <td>
+                                ${esc(
+                                    member.branch || '-'
+                                )}
+                            </td>
+
+                            <td>
+
+                                ${badge(
+                                    member.status || 'Unknown',
+                                    memberStatusClass(
+                                        member.status
+                                    )
+                                )}
+
+                            </td>
+
+                            <td>
+                                ${esc(
+                                    member.borrowed_count ?? 0
+                                )}
+                            </td>
+
+                            <td>
+
+                                <div class="actions">
+
+                                    <button
+                                        class="btn btn-ghost"
+                                        type="button"
+                                        onclick="viewAdminMember('${esc(
+                                            member.member_id ||
+                                            member.id
+                                        )}')"
+                                    >
+                                        View
+                                    </button>
+
+                                    <button
+                                        class="btn btn-outline"
+                                        type="button"
+                                        onclick="editAdminMember('${esc(
+                                            member.member_id ||
+                                            member.id
+                                        )}')"
+                                    >
+                                        Edit
+                                    </button>
+
+                                    ${
+                                        String(
+                                            member.status
+                                        ).toLowerCase() === 'active'
+
+                                        ? `
+
+                                            <button
+                                                class="btn btn-danger"
+                                                type="button"
+                                                onclick="handleSuspendMember('${esc(
+                                                    member.member_id ||
+                                                    member.id
+                                                )}')"
+                                            >
+                                                Suspend
+                                            </button>
+
+                                        `
+
+                                        : `
+
+                                            <button
+                                                class="btn btn-primary"
+                                                type="button"
+                                                onclick="handleRestoreMember('${esc(
+                                                    member.member_id ||
+                                                    member.id
+                                                )}')"
+                                            >
+                                                Restore
+                                            </button>
+
+                                        `
+                                    }
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                    `).join('')}
+
+                </tbody>
+
+            </table>
+
         </div>
     `;
-
-    document.getElementById('addMemberForm').onsubmit = async (e) => {
-        e.preventDefault();
-        try {
-            await addMember({
-                full_name: document.getElementById('add_full_name').value.trim(),
-                email: document.getElementById('add_email').value.trim(),
-                password: document.getElementById('add_password').value,
-                branch: document.getElementById('add_branch').value.trim(),
-                nic: document.getElementById('add_nic').value.trim(),
-                phone: document.getElementById('add_phone').value.trim()
-            });
-
-            alert('Member created successfully.');
-            closeMemberModal();
-            loadMembersTable();
-        } catch (err) {
-            alert(err.message);
-        }
-    };
 }
 
-// 2. Edit Member Modal Open කිරීම
-async function openEditMemberModal(memberId) {
-    try {
-        const res = await getMember(memberId);
-        const member = res.member || res.data || res;
 
-        const container = document.getElementById('memberModalContainer');
-        if (!container) return;
+/*
+|--------------------------------------------------------------------------
+| SEARCH / FILTER
+|--------------------------------------------------------------------------
+*/
 
-        container.innerHTML = `
-            <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
-                <div class="modal-content" style="background: #fff; padding: 25px; border-radius: 8px; width: 400px; max-width: 90%;">
-                    <h3 style="margin-top: 0;">Edit Member (${member.member_id || ''})</h3>
-                    <form id="editMemberForm" style="display: flex; flex-direction: column; gap: 12px;">
-                        <div>
-                            <label style="font-size: 12px; font-weight: bold;">Full Name *</label>
-                            <input type="text" id="edit_full_name" value="${member.full_name || ''}" required style="width: 100%; padding: 8px; box-sizing: border-box;">
-                        </div>
-                        <div>
-                            <label style="font-size: 12px; font-weight: bold;">Email *</label>
-                            <input type="email" id="edit_email" value="${member.email || ''}" required style="width: 100%; padding: 8px; box-sizing: border-box;">
-                        </div>
-                        <div>
-                            <label style="font-size: 12px; font-weight: bold;">Branch *</label>
-                            <input type="text" id="edit_branch" value="${member.branch || ''}" required style="width: 100%; padding: 8px; box-sizing: border-box;">
-                        </div>
-                        <div>
-                            <label style="font-size: 12px; font-weight: bold;">NIC</label>
-                            <input type="text" id="edit_nic" value="${member.nic || ''}" style="width: 100%; padding: 8px; box-sizing: border-box;">
-                        </div>
-                        <div>
-                            <label style="font-size: 12px; font-weight: bold;">Phone</label>
-                            <input type="text" id="edit_phone" value="${member.phone || ''}" style="width: 100%; padding: 8px; box-sizing: border-box;">
-                        </div>
+function searchAdminMembers() {
 
-                        <div style="font-size: 12px; color: #666; margin-top: 5px;">
-                            <p style="margin: 2px 0;"><strong>Joined:</strong> ${member.joined_date || '-'}</p>
-                            <p style="margin: 2px 0;"><strong>Borrowed Books:</strong> ${member.borrowed_count || 0}</p>
-                            <p style="margin: 2px 0;"><strong>Status:</strong> ${member.status || '-'}</p>
-                        </div>
+    const searchInput =
+        document.getElementById(
+            'member-search'
+        );
 
-                        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px;">
-                            <button type="button" onclick="closeMemberModal()" style="padding: 8px 16px; cursor: pointer;">Cancel</button>
-                            <button type="submit" class="btn-primary" style="padding: 8px 16px; cursor: pointer;">Update Member</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        `;
+    const statusSelect =
+        document.getElementById(
+            'member-status-filter'
+        );
 
-        document.getElementById('editMemberForm').onsubmit = async (e) => {
-            e.preventDefault();
-            try {
-                await updateMember({
-                    id: memberId,
-                    full_name: document.getElementById('edit_full_name').value.trim(),
-                    email: document.getElementById('edit_email').value.trim(),
-                    branch: document.getElementById('edit_branch').value.trim(),
-                    nic: document.getElementById('edit_nic').value.trim(),
-                    phone: document.getElementById('edit_phone').value.trim()
-                });
+    loadAdminMembers(
+        searchInput
+            ? searchInput.value.trim()
+            : '',
 
-                alert('Member updated successfully.');
-                closeMemberModal();
-                loadMembersTable();
-            } catch (err) {
-                alert(err.message);
-            }
-        };
-    } catch (err) {
-        alert(err.message);
-    }
+        statusSelect
+            ? statusSelect.value
+            : ''
+    );
 }
 
-// 3. Suspend Action Handler
-async function handleSuspend(memberId) {
-    if (confirm('Are you sure you want to suspend this member?')) {
-        try {
-            await suspendMember(memberId);
-            alert('Member suspended successfully.');
-            loadMembersTable();
-        } catch (err) {
-            alert(err.message);
-        }
-    }
-}
 
-// 4. Restore Action Handler
-async function handleRestore(memberId) {
-    try {
-        await restoreMember(memberId);
-        alert('Member restored successfully.');
-        loadMembersTable();
-    } catch (err) {
-        alert(err.message);
-    }
-}
+/*
+|--------------------------------------------------------------------------
+| MEMBER MODAL
+|--------------------------------------------------------------------------
+*/
 
-// Modal එක Close කරන Helper Function එක
 function closeMemberModal() {
-    const container = document.getElementById('memberModalContainer');
-    if (container) {
-        container.innerHTML = '';
+
+    const modal =
+        document.getElementById(
+            'member-modal'
+        );
+
+    if (modal) {
+        modal.remove();
+    }
+}
+
+
+function memberModal(content) {
+
+    closeMemberModal();
+
+    document.body.insertAdjacentHTML(
+        'beforeend',
+
+        `
+
+        <div
+            class="modal"
+            id="member-modal"
+            onclick="if(event.target === this) closeMemberModal()"
+        >
+
+            <div class="modal-card">
+
+                ${content}
+
+            </div>
+
+        </div>
+
+        `
+    );
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| ADD MEMBER
+|--------------------------------------------------------------------------
+*/
+
+function showAddMemberModal() {
+
+    memberModal(`
+
+        <h2>
+            Register Member
+        </h2>
+
+        <form
+            id="add-member-form"
+            onsubmit="submitAddMember(event)"
+        >
+
+            <div class="modal-grid">
+
+                <div class="form-group">
+
+                    <label class="label">
+                        Full Name *
+                    </label>
+
+                    <input
+                        id="member-full-name"
+                        class="field"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label class="label">
+                        Email *
+                    </label>
+
+                    <input
+                        id="member-email"
+                        class="field"
+                        type="email"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label class="label">
+                        Password *
+                    </label>
+
+                    <input
+                        id="member-password"
+                        class="field"
+                        type="password"
+                        minlength="6"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label class="label">
+                        NIC *
+                    </label>
+
+                    <input
+                        id="member-nic"
+                        class="field"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label class="label">
+                        Phone *
+                    </label>
+
+                    <input
+                        id="member-phone"
+                        class="field"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label class="label">
+                        Branch *
+                    </label>
+
+                    <select
+                        id="member-branch"
+                        class="field"
+                        required
+                    >
+
+                        <option value="">
+                            Select branch
+                        </option>
+
+                        ${branches.map(
+                            branch => `
+
+                            <option
+                                value="${esc(branch)}"
+                            >
+                                ${esc(branch)}
+                            </option>
+
+                        `
+                        ).join('')}
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <div
+                id="member-form-error"
+                class="error"
+            ></div>
+
+
+            <div class="modal-actions">
+
+                <button
+                    type="button"
+                    class="btn btn-outline"
+                    onclick="closeMemberModal()"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    type="submit"
+                    class="btn btn-primary"
+                >
+                    Register Member
+                </button>
+
+            </div>
+
+        </form>
+
+    `);
+}
+
+
+async function submitAddMember(event) {
+
+    event.preventDefault();
+
+    const errorBox =
+        document.getElementById(
+            'member-form-error'
+        );
+
+    const memberData = {
+
+        full_name:
+            document.getElementById(
+                'member-full-name'
+            ).value.trim(),
+
+        email:
+            document.getElementById(
+                'member-email'
+            ).value.trim(),
+
+        password:
+            document.getElementById(
+                'member-password'
+            ).value,
+
+        nic:
+            document.getElementById(
+                'member-nic'
+            ).value.trim(),
+
+        phone:
+            document.getElementById(
+                'member-phone'
+            ).value.trim(),
+
+        branch:
+            document.getElementById(
+                'member-branch'
+            ).value
+    };
+
+    errorBox.textContent = '';
+
+    try {
+
+        const response =
+            await addMember(
+                memberData
+            );
+
+        if (
+            !response ||
+            response.success === false
+        ) {
+
+            errorBox.textContent =
+                memberErrorMessage(
+                    response,
+                    'Unable to register member.'
+                );
+
+            return;
+        }
+
+        closeMemberModal();
+
+        await loadAdminMembers();
+
+        alert(
+            'Member registered successfully.'
+        );
+
+    } catch (error) {
+
+        console.error(
+            'Add member error:',
+            error
+        );
+
+        errorBox.textContent =
+            'Unable to connect to the server.';
+    }
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| VIEW MEMBER
+|--------------------------------------------------------------------------
+*/
+
+async function viewAdminMember(memberId) {
+
+    memberModal(`
+
+        <h2>
+            Member Details
+        </h2>
+
+        <div
+            class="empty-state"
+            style="padding:30px 10px"
+        >
+
+            <strong>
+                Loading...
+            </strong>
+
+        </div>
+
+    `);
+
+    try {
+
+        const response =
+            await getMember(
+                memberId
+            );
+
+        if (
+            !response ||
+            response.success === false
+        ) {
+
+            memberModal(`
+
+                <h2>
+                    Member Details
+                </h2>
+
+                <div class="error">
+                    ${esc(
+                        memberErrorMessage(
+                            response,
+                            'Unable to load member details.'
+                        )
+                    )}
+                </div>
+
+                <div class="modal-actions">
+
+                    <button
+                        class="btn btn-outline"
+                        onclick="closeMemberModal()"
+                    >
+                        Close
+                    </button>
+
+                </div>
+
+            `);
+
+            return;
+        }
+
+        const member =
+            response.data ||
+            response.member ||
+            response;
+
+        memberModal(`
+
+            <h2>
+                Member Details
+            </h2>
+
+            <div class="modal-grid">
+
+                <div>
+
+                    <div class="label">
+                        Member ID
+                    </div>
+
+                    <div>
+                        ${esc(
+                            member.member_id || '-'
+                        )}
+                    </div>
+
+                </div>
+
+
+                <div>
+
+                    <div class="label">
+                        Full Name
+                    </div>
+
+                    <div>
+                        ${esc(
+                            member.full_name || '-'
+                        )}
+                    </div>
+
+                </div>
+
+
+                <div>
+
+                    <div class="label">
+                        Email
+                    </div>
+
+                    <div>
+                        ${esc(
+                            member.email || '-'
+                        )}
+                    </div>
+
+                </div>
+
+
+                <div>
+
+                    <div class="label">
+                        NIC
+                    </div>
+
+                    <div>
+                        ${esc(
+                            member.nic || '-'
+                        )}
+                    </div>
+
+                </div>
+
+
+                <div>
+
+                    <div class="label">
+                        Phone
+                    </div>
+
+                    <div>
+                        ${esc(
+                            member.phone || '-'
+                        )}
+                    </div>
+
+                </div>
+
+
+                <div>
+
+                    <div class="label">
+                        Branch
+                    </div>
+
+                    <div>
+                        ${esc(
+                            member.branch || '-'
+                        )}
+                    </div>
+
+                </div>
+
+
+                <div>
+
+                    <div class="label">
+                        Joined Date
+                    </div>
+
+                    <div>
+                        ${formatMemberDate(
+                            member.joined_date
+                        )}
+                    </div>
+
+                </div>
+
+
+                <div>
+
+                    <div class="label">
+                        Borrowed Books
+                    </div>
+
+                    <div>
+                        ${esc(
+                            member.borrowed_count ?? 0
+                        )}
+                    </div>
+
+                </div>
+
+
+                <div>
+
+                    <div class="label">
+                        Status
+                    </div>
+
+                    <div>
+
+                        ${badge(
+                            member.status || 'Unknown',
+                            memberStatusClass(
+                                member.status
+                            )
+                        )}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="modal-actions">
+
+                <button
+                    class="btn btn-outline"
+                    onclick="closeMemberModal()"
+                >
+                    Close
+                </button>
+
+                <button
+                    class="btn btn-primary"
+                    onclick="closeMemberModal(); editAdminMember('${esc(
+                        member.member_id ||
+                        member.id
+                    )}')"
+                >
+                    Edit Member
+                </button>
+
+            </div>
+
+        `);
+
+    } catch (error) {
+
+        console.error(
+            'View member error:',
+            error
+        );
+
+        memberModal(`
+
+            <h2>
+                Member Details
+            </h2>
+
+            <div class="error">
+                Unable to connect to the server.
+            </div>
+
+            <div class="modal-actions">
+
+                <button
+                    class="btn btn-outline"
+                    onclick="closeMemberModal()"
+                >
+                    Close
+                </button>
+
+            </div>
+
+        `);
+    }
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| EDIT MEMBER
+|--------------------------------------------------------------------------
+*/
+
+async function editAdminMember(memberId) {
+
+    memberModal(`
+
+        <h2>
+            Edit Member
+        </h2>
+
+        <div
+            class="empty-state"
+            style="padding:30px 10px"
+        >
+
+            <strong>
+                Loading...
+            </strong>
+
+        </div>
+
+    `);
+
+    try {
+
+        const response =
+            await getMember(
+                memberId
+            );
+
+        if (
+            !response ||
+            response.success === false
+        ) {
+
+            memberModal(`
+
+                <h2>
+                    Edit Member
+                </h2>
+
+                <div class="error">
+                    ${esc(
+                        memberErrorMessage(
+                            response,
+                            'Unable to load member.'
+                        )
+                    )}
+                </div>
+
+                <div class="modal-actions">
+
+                    <button
+                        class="btn btn-outline"
+                        onclick="closeMemberModal()"
+                    >
+                        Close
+                    </button>
+
+                </div>
+
+            `);
+
+            return;
+        }
+
+        const member =
+            response.data ||
+            response.member ||
+            response;
+
+        memberModal(`
+
+            <h2>
+                Edit Member
+            </h2>
+
+            <form
+                id="edit-member-form"
+                onsubmit="submitEditMember(
+                    event,
+                    '${esc(
+                        member.member_id ||
+                        member.id
+                    )}'
+                )"
+            >
+
+                <div class="modal-grid">
+
+                    <div class="form-group">
+
+                        <label class="label">
+                            Full Name *
+                        </label>
+
+                        <input
+                            id="edit-member-full-name"
+                            class="field"
+                            value="${esc(
+                                member.full_name || ''
+                            )}"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label class="label">
+                            Email *
+                        </label>
+
+                        <input
+                            id="edit-member-email"
+                            class="field"
+                            type="email"
+                            value="${esc(
+                                member.email || ''
+                            )}"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label class="label">
+                            NIC *
+                        </label>
+
+                        <input
+                            id="edit-member-nic"
+                            class="field"
+                            value="${esc(
+                                member.nic || ''
+                            )}"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label class="label">
+                            Phone *
+                        </label>
+
+                        <input
+                            id="edit-member-phone"
+                            class="field"
+                            value="${esc(
+                                member.phone || ''
+                            )}"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label class="label">
+                            Branch *
+                        </label>
+
+                        <select
+                            id="edit-member-branch"
+                            class="field"
+                            required
+                        >
+
+                            ${branches.map(
+                                branch => `
+
+                                <option
+                                    value="${esc(branch)}"
+                                    ${
+                                        member.branch === branch
+                                            ? 'selected'
+                                            : ''
+                                    }
+                                >
+                                    ${esc(branch)}
+                                </option>
+
+                            `
+                            ).join('')}
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label class="label">
+                            Status
+                        </label>
+
+                        <input
+                            class="field"
+                            value="${esc(
+                                member.status || ''
+                            )}"
+                            disabled
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="edit-member-error"
+                    class="error"
+                ></div>
+
+
+                <div class="modal-actions">
+
+                    <button
+                        type="button"
+                        class="btn btn-outline"
+                        onclick="closeMemberModal()"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
+                        Save Changes
+                    </button>
+
+                </div>
+
+            </form>
+
+        `);
+
+    } catch (error) {
+
+        console.error(
+            'Edit member load error:',
+            error
+        );
+
+        memberModal(`
+
+            <h2>
+                Edit Member
+            </h2>
+
+            <div class="error">
+                Unable to connect to the server.
+            </div>
+
+            <div class="modal-actions">
+
+                <button
+                    class="btn btn-outline"
+                    onclick="closeMemberModal()"
+                >
+                    Close
+                </button>
+
+            </div>
+
+        `);
+    }
+}
+
+
+async function submitEditMember(
+    event,
+    memberId
+) {
+
+    event.preventDefault();
+
+    const errorBox =
+        document.getElementById(
+            'edit-member-error'
+        );
+
+    errorBox.textContent = '';
+
+    const memberData = {
+
+        member_id: memberId,
+
+        full_name:
+            document.getElementById(
+                'edit-member-full-name'
+            ).value.trim(),
+
+        email:
+            document.getElementById(
+                'edit-member-email'
+            ).value.trim(),
+
+        nic:
+            document.getElementById(
+                'edit-member-nic'
+            ).value.trim(),
+
+        phone:
+            document.getElementById(
+                'edit-member-phone'
+            ).value.trim(),
+
+        branch:
+            document.getElementById(
+                'edit-member-branch'
+            ).value
+    };
+
+    try {
+
+        const response =
+            await updateMember(
+                memberData
+            );
+
+        if (
+            !response ||
+            response.success === false
+        ) {
+
+            errorBox.textContent =
+                memberErrorMessage(
+                    response,
+                    'Unable to update member.'
+                );
+
+            return;
+        }
+
+        closeMemberModal();
+
+        await loadAdminMembers();
+
+        alert(
+            'Member updated successfully.'
+        );
+
+    } catch (error) {
+
+        console.error(
+            'Update member error:',
+            error
+        );
+
+        errorBox.textContent =
+            'Unable to connect to the server.';
+    }
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| SUSPEND MEMBER
+|--------------------------------------------------------------------------
+*/
+
+async function handleSuspendMember(
+    memberId
+) {
+
+    const confirmed =
+        confirm(
+            'Are you sure you want to suspend this member?'
+        );
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+
+        const response =
+            await suspendMember(
+                memberId
+            );
+
+        if (
+            !response ||
+            response.success === false
+        ) {
+
+            alert(
+                memberErrorMessage(
+                    response,
+                    'Unable to suspend member.'
+                )
+            );
+
+            return;
+        }
+
+        await loadAdminMembers();
+
+        alert(
+            'Member suspended successfully.'
+        );
+
+    } catch (error) {
+
+        console.error(
+            'Suspend member error:',
+            error
+        );
+
+        alert(
+            'Unable to connect to the server.'
+        );
+    }
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| RESTORE MEMBER
+|--------------------------------------------------------------------------
+*/
+
+async function handleRestoreMember(
+    memberId
+) {
+
+    const confirmed =
+        confirm(
+            'Are you sure you want to restore this member?'
+        );
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+
+        const response =
+            await restoreMember(
+                memberId
+            );
+
+        if (
+            !response ||
+            response.success === false
+        ) {
+
+            alert(
+                memberErrorMessage(
+                    response,
+                    'Unable to restore member.'
+                )
+            );
+
+            return;
+        }
+
+        await loadAdminMembers();
+
+        alert(
+            'Member restored successfully.'
+        );
+
+    } catch (error) {
+
+        console.error(
+            'Restore member error:',
+            error
+        );
+
+        alert(
+            'Unable to connect to the server.'
+        );
     }
 }
