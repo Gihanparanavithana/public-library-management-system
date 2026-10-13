@@ -2458,7 +2458,9 @@ async function register(e) {
                             'reg-branch'
                         ).value,
 
-                    password: p
+                      password: p,
+                      confirm_password: confirm
+
 
                 })
             }
