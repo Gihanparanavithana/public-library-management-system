@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../config/session.php';
+require_once __DIR__ . '/../config/csrf_guard.php';
 
 require_once __DIR__ . '/../config/database.php';
 
@@ -105,13 +106,13 @@ try {
      * Password length
      */
 
-    if (strlen($password) < 6) {
+    if (strlen($password) < 8) {
 
         http_response_code(422);
 
         echo json_encode([
             'success' => false,
-            'message' => 'Password must contain at least 6 characters.'
+            'message' => 'Password must contain at least 8 characters.'
         ]);
 
         exit;
@@ -240,7 +241,14 @@ try {
     echo json_encode([
         'success' => true,
         'message' => 'Account created successfully.',
-        'member_id' => $memberId
+        'member_id' => $memberId,
+        'user' => [
+            'id' => $userId,
+            'full_name' => $fullName,
+            'email' => $email,
+            'role' => 'member',
+            'status' => 'active'
+        ]
     ]);
 
 } catch (PDOException $e) {
